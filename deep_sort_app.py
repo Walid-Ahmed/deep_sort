@@ -12,6 +12,7 @@ from application_util import visualization
 from deep_sort import nn_matching
 from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
+from tools.generate_detections import * 
 
 
 def gather_sequence_info(sequence_dir, detection_file):
@@ -41,13 +42,20 @@ def gather_sequence_info(sequence_dir, detection_file):
 
     """
     image_dir = os.path.join(sequence_dir, "img1")
-    image_filenames = {
-        int(os.path.splitext(f)[0]): os.path.join(image_dir, f)
-        for f in os.listdir(image_dir)}
+    # image_filenames = {
+    #     int(os.path.splitext(f)[0]): os.path.join(image_dir, f)
+    #     for f in os.listdir(image_dir)}
+
+    image_filenames = {}
+    for f in os.listdir(image_dir):
+        if f != ".DS_Store":
+            image_filenames[int(os.path.splitext(f)[0])] = os.path.join(image_dir, f)
+
     groundtruth_file = os.path.join(sequence_dir, "gt/gt.txt")
 
     detections = None
     if detection_file is not None:
+        # detections = np.loadtxt(detection_file, delimiter=',')
         detections = np.load(detection_file)
     groundtruth = None
     if os.path.exists(groundtruth_file):
@@ -114,11 +122,11 @@ def create_detections(detection_mat, frame_idx, min_height=0):
         Returns detection responses at given frame index.
 
     """
-    frame_indices = detection_mat[:, 0].astype(np.int)
-    mask = frame_indices == frame_idx
+    # frame_indices = detection_mat[:, 0].astype(np.int)
+    # mask = frame_indices == frame_idx
 
     detection_list = []
-    for row in detection_mat[mask]:
+    for row in detection_mat:
         bbox, confidence, feature = row[2:6], row[6], row[10:]
         if bbox[3] < min_height:
             continue
@@ -126,9 +134,9 @@ def create_detections(detection_mat, frame_idx, min_height=0):
     return detection_list
 
 
-def run(sequence_dir, detection_file, output_file, min_confidence,
+def run(model, sequence_dir, detection_file, output_file, min_confidence,
         nms_max_overlap, min_detection_height, max_cosine_distance,
-        nn_budget, display):
+        nn_budget, display, record_file): # I should add model here as an argument
     """Run multi-target tracker on a particular sequence.
 
     Parameters
@@ -165,12 +173,18 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
 
     def frame_callback(vis, frame_idx):
         print("Processing frame %05d" % frame_idx)
-
         # Load image and generate detections.
-        detections = create_detections(
-            seq_info["detections"], frame_idx, min_detection_height)
-        detections = [d for d in detections if d.confidence >= min_confidence]
+        # this is the part where to make online, get a detection for a single frame
+        # create a new method for frame call back that call the detection network and give back
+        # detections = create_detections(
+        #     seq_info["detections"], frame_idx, min_detection_height)
 
+        # enable online detections
+        # detections = get_detections(model, frame_idx, sequence_dir)
+        detections = create_detections(get_detections(model, frame_idx, sequence_dir), 
+            frame_idx, min_detection_height)
+        
+        detections = [d for d in detections if d.confidence >= min_confidence]
         # Run non-maxima suppression.
         boxes = np.array([d.tlwh for d in detections])
         scores = np.array([d.confidence for d in detections])
@@ -186,6 +200,9 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
         if display:
             image = cv2.imread(
                 seq_info["image_filenames"][frame_idx], cv2.IMREAD_COLOR)
+
+
+
             vis.set_image(image.copy())
             vis.draw_detections(detections)
             vis.draw_trackers(tracker.tracks)
@@ -203,6 +220,8 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
         visualizer = visualization.Visualization(seq_info, update_ms=5)
     else:
         visualizer = visualization.NoVisualization(seq_info)
+    # here I should enable video recording
+    visualizer.viewer.enable_videowriter(record_file)
     visualizer.run(frame_callback)
 
     # Store results.
@@ -212,16 +231,16 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
             row[0], row[1], row[2], row[3], row[4], row[5]),file=f)
 
 
-def bool_string(input_string):
-    if input_string not in {"True","False"}:
-        raise ValueError("Please Enter a valid Ture/False choice")
-    else:
-        return (input_string == "True")
-
 def parse_args():
     """ Parse command line arguments.
     """
     parser = argparse.ArgumentParser(description="Deep SORT")
+
+
+    parser.add_argument(
+        "--model", help="Path to detection model",
+        default=None, required=True)
+
     parser.add_argument(
         "--sequence_dir", help="Path to MOTChallenge sequence directory",
         default=None, required=True)
@@ -251,13 +270,21 @@ def parse_args():
         "gallery. If None, no budget is enforced.", type=int, default=None)
     parser.add_argument(
         "--display", help="Show intermediate tracking results",
-        default=True, type=bool_string)
+        default=True, type=bool)
+
+    parser.add_argument(
+        "--record_file", help="enter record file name",
+        default='x.mp4', type=str)
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
+
+    # load the model here
+    encoder = create_box_encoder(args.model, batch_size=1)
+
     run(
-        args.sequence_dir, args.detection_file, args.output_file,
+        encoder, args.sequence_dir, args.detection_file, args.output_file,
         args.min_confidence, args.nms_max_overlap, args.min_detection_height,
-        args.max_cosine_distance, args.nn_budget, args.display)
+        args.max_cosine_distance, args.nn_budget, args.display, args.record_file)

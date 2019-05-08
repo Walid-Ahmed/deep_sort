@@ -114,6 +114,44 @@ def create_box_encoder(model_filename, input_name="images",
 
     return encoder
 
+# This method is used to enable online tracking
+def get_detections(encoder, frame_idx, sequence_dir):
+    
+    image_dir = os.path.join(sequence_dir, "img1")
+    
+    ############################################################################################
+    
+    image_filenames = {}
+    for f in os.listdir(image_dir):
+        if f != ".DS_Store":
+            image_filenames[int(os.path.splitext(f)[0])] = os.path.join(image_dir, f)
+    
+    
+
+
+    detection_file = os.path.join(
+        sequence_dir, "det/det.txt")
+    detections_in = np.loadtxt(detection_file, delimiter=',')
+    
+    ############################################################################################
+
+    frame_indices = detections_in[:, 0].astype(np.int)
+    
+    
+    mask = frame_indices == frame_idx
+    rows = detections_in[mask]
+
+    if frame_idx not in image_filenames:
+        print("WARNING could not find image for frame %d" % frame_idx)
+        return
+
+    bgr_image = cv2.imread(
+        image_filenames[frame_idx], cv2.IMREAD_COLOR)
+    features = encoder(bgr_image, rows[:, 2:6].copy())
+    
+    return [np.r_[(row, feature)] for row, feature
+                       in zip(rows, features)]
+
 
 def generate_detections(encoder, mot_dir, output_dir, detection_dir=None):
     """Generate detections with features.
@@ -147,12 +185,19 @@ def generate_detections(encoder, mot_dir, output_dir, detection_dir=None):
 
     for sequence in os.listdir(mot_dir):
         print("Processing %s" % sequence)
+        if (sequence == ".DS_Store"):
+            continue
         sequence_dir = os.path.join(mot_dir, sequence)
 
         image_dir = os.path.join(sequence_dir, "img1")
-        image_filenames = {
-            int(os.path.splitext(f)[0]): os.path.join(image_dir, f)
-            for f in os.listdir(image_dir)}
+        # image_filenames = {
+        #     int(os.path.splitext(f)[0]): os.path.join(image_dir, f)
+        #     for f in os.listdir(image_dir)}
+        image_filenames = {}
+        for f in os.listdir(image_dir):
+            if f != ".DS_Store":
+                image_filenames[int(os.path.splitext(f)[0])] = os.path.join(image_dir, f)
+        
 
         detection_file = os.path.join(
             detection_dir, sequence, "det/det.txt")
@@ -173,6 +218,8 @@ def generate_detections(encoder, mot_dir, output_dir, detection_dir=None):
             bgr_image = cv2.imread(
                 image_filenames[frame_idx], cv2.IMREAD_COLOR)
             features = encoder(bgr_image, rows[:, 2:6].copy())
+            # print(features[:, 0])
+            
             detections_out += [np.r_[(row, feature)] for row, feature
                                in zip(rows, features)]
 

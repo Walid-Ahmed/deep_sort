@@ -36,6 +36,7 @@ def run(sequence_dir, result_file, show_false_alarms=False, detection_file=None,
     """
     seq_info = deep_sort_app.gather_sequence_info(sequence_dir, detection_file)
     results = np.loadtxt(result_file, delimiter=',')
+    # results = np.load(result_file)
 
     if show_false_alarms and seq_info["groundtruth"] is None:
         raise ValueError("No groundtruth available. Cannot show false alarms.")
