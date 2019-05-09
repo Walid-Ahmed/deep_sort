@@ -226,6 +226,9 @@ def parse_args():
     """
     parser = argparse.ArgumentParser(description="Deep SORT")
     parser.add_argument(
+        "--model", help="Model name",
+        default=None, required=False)
+    parser.add_argument(
         "--sequence_dir", help="Path to MOTChallenge sequence directory",
         default=None, required=True)
     parser.add_argument(
