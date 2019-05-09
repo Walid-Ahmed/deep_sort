@@ -2,7 +2,7 @@ import os
 import json
 
 
-os.system("echo 'running all....'")
+os.system("echo 'running....'")
 advance_count = 1
 
 
