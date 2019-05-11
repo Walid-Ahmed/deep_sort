@@ -39,16 +39,14 @@ def parse_page(link):
     return h
 
 def download_file(bn, url, filename):
-    if not config["force_download"]:
-        return
-
+    
     download_link = parse_page(url)
     url_components = urlparse(download_link)    
-    
     name, file_ext = splitext(basename(url_components.path))
+    print("Downloading {}".format(name+file_ext))
     file_path = os.path.join(os.getcwd(), bn + name + file_ext)
-    exists = os.path.isfile(file_path)
-    if exists:
+    
+    if os.path.isfile(file_path) and not config["force_download"]:
         pass
     else:
         # opener.retrieve(url, file_path, download_progress)
