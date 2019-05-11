@@ -55,8 +55,9 @@ def gather_sequence_info(sequence_dir, detection_file):
 
     detections = None
     if detection_file is not None:
+        pass
         # detections = np.loadtxt(detection_file, delimiter=',')
-        detections = np.load(detection_file)
+        #detections = np.load(detection_file)
     groundtruth = None
     if os.path.exists(groundtruth_file):
         groundtruth = np.loadtxt(groundtruth_file, delimiter=',')

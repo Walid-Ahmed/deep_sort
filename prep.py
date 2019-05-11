@@ -43,9 +43,8 @@ def download_file(bn, url, filename):
         urlretrieve(url, file_path, download_progress)
     
     print("\nDownload Complete\n")
-    
-    if file_ext.endswith('.zip'):
-        check_folder_exits(name)
+    if file_ext == '.zip':
+        check_folder_exits(name, file_ext)
         # print("\nUnzipping file...\n")
         # unzipfile(filename)
         # print("\nUnzipping Complete\n")
@@ -63,20 +62,20 @@ def rmv_MACOSX():
     # os.makedirs(target_folder)
 
 
-def check_folder_exits(name):
-    
+def check_folder_exits(name, file_ext):
+    print(name)
     print("\nUnzipping file...\n")
     if not os.path.exists(os.path.join(os.getcwd(), name)):
-        unzipfile(name)
+        unzipfile(name+file_ext)
     print("\nUnzipping Complete\n")
 
 with open('app.config') as data:
     config = json.load(data)
 
 # os.path.join(os.getcwd(), basename + filename)
-items = [(config["res_struct"]["networks"], "mars-small128.ckpt-68577", "http://download1644.mediafire.com/hl18j2gd9ueg/i8ulgnq050k8c9v/mars-small128.ckpt-68577"), 
-    (config["res_struct"]["networks"], "mars-small128.ckpt-68577.meta", "http://download846.mediafire.com/xtxd4zy8ephg/m7eciqc1q4ipi5v/mars-small128.ckpt-68577.meta"), 
-    (config["res_struct"]["networks"], "mars-small128.pb", "http://download2269.mediafire.com/aj1nq6dj3dfg/lch8dhv54obckb2/mars-small128.pb"), 
+items = [(config["res_struct"]["networks"], "mars-small128.ckpt-68577", "http://download1644.mediafire.com/jm3pp4dbg6lg/i8ulgnq050k8c9v/mars-small128.ckpt-68577"), 
+    (config["res_struct"]["networks"], "mars-small128.ckpt-68577.meta", "http://download846.mediafire.com/ipxzk00ityhg/m7eciqc1q4ipi5v/mars-small128.ckpt-68577.meta"), 
+    (config["res_struct"]["networks"], "mars-small128.pb", "http://download846.mediafire.com/6c9gg6w5amzg/lch8dhv54obckb2/mars-small128.pb"), 
     ("./", "MOT16.zip", "https://motchallenge.net/data/MOT16.zip")]
 
 
@@ -108,7 +107,7 @@ for (bn, filename, url) in items:
         download_file(bn, url, filename)
     except Exception as e:
         print(e)
-        pass
+        
 
 
 if config["mode"] != "online" and not os.path.exists(config["detection_file"]):
