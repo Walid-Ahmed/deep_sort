@@ -15,7 +15,7 @@ needed to run the tracker:
 * OpenCV
 
 Feature generation requires TensorFlow (>= 1.0).  
-Additional library to install is [console progress bar](https://pypi.org/project/console-progressbar/)
+Additional libraries to install are [console progress bar](https://pypi.org/project/console-progressbar/) and [beautifulsoup](https://pypi.org/project/beautifulsoup4/)
 
 ## Installation
 
@@ -27,7 +27,7 @@ cd deep_sort
 
 Then, run preparations file which will download the required files, the neural network will be placed under the folder 'resources\networks\' and MOT challenge benchmark (MOT16) data as a zip file and will be extracted under MOT16 folder then detection files will be created. Finally, a demo will run for the first time to show the end result of Deep SORT algorithm. 
 
-WARNING: motdata requries enough space on disk
+WARNING: motdata requires enough space on disk, in addition, if the download links are broken please download them manually from [here](https://drive.google.com/open?id=18fKzfqnqhqW3s9zwsCbnVJ5XF2JFeqMp) place them under the designated folder above.
 ``` 
 python prep.py 
 ```

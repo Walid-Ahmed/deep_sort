@@ -3,6 +3,7 @@ from urllib.parse import urlparse
 from urllib.request import urlretrieve, urlopen, build_opener, install_opener, URLopener, HTTPCookieProcessor
 from console_progressbar import ProgressBar
 from os.path import splitext, basename
+from bs4 import BeautifulSoup
 
 import os
 import zipfile
@@ -29,10 +30,19 @@ def unzipfile(file):
         pass  
     
 
+def parse_page(link):
+    if 'mediafire' not in link:
+        return link
+
+    response = urlopen(link).read()
+    h = BeautifulSoup(response, 'html.parser').find('a', attrs={'class': 'input', 'aria-label': 'Download file'}).get('href')
+    return h
+
 def download_file(bn, url, filename):
-    # Open the url
-    # filealready exits
-    url_components = urlparse(url)
+
+    download_link = parse_page(url)
+    url_components = urlparse(download_link)    
+    
     name, file_ext = splitext(basename(url_components.path))
     file_path = os.path.join(os.getcwd(), bn + name + file_ext)
     exists = os.path.isfile(file_path)
@@ -40,7 +50,7 @@ def download_file(bn, url, filename):
         pass
     else:
         # opener.retrieve(url, file_path, download_progress)
-        urlretrieve(url, file_path, download_progress)
+        urlretrieve(download_link, file_path, download_progress)
     
     print("\nDownload Complete\n")
     if file_ext == '.zip':
@@ -63,7 +73,6 @@ def rmv_MACOSX():
 
 
 def check_folder_exits(name, file_ext):
-    print(name)
     print("\nUnzipping file...\n")
     if not os.path.exists(os.path.join(os.getcwd(), name)):
         unzipfile(name+file_ext)
@@ -73,9 +82,9 @@ with open('app.config') as data:
     config = json.load(data)
 
 # os.path.join(os.getcwd(), basename + filename)
-items = [(config["res_struct"]["networks"], "mars-small128.ckpt-68577", "http://download1644.mediafire.com/jm3pp4dbg6lg/i8ulgnq050k8c9v/mars-small128.ckpt-68577"), 
-    (config["res_struct"]["networks"], "mars-small128.ckpt-68577.meta", "http://download846.mediafire.com/ipxzk00ityhg/m7eciqc1q4ipi5v/mars-small128.ckpt-68577.meta"), 
-    (config["res_struct"]["networks"], "mars-small128.pb", "http://download846.mediafire.com/6c9gg6w5amzg/lch8dhv54obckb2/mars-small128.pb"), 
+items = [(config["res_struct"]["networks"], "mars-small128.ckpt-68577", "http://www.mediafire.com/file/i8ulgnq050k8c9v/mars-small128.ckpt-68577/file"), 
+    (config["res_struct"]["networks"], "mars-small128.ckpt-68577.meta", "http://www.mediafire.com/file/m7eciqc1q4ipi5v/mars-small128.ckpt-68577.meta/file"), 
+    (config["res_struct"]["networks"], "mars-small128.pb", "http://www.mediafire.com/file/lch8dhv54obckb2/mars-small128.pb/file"), 
     ("./", "MOT16.zip", "https://motchallenge.net/data/MOT16.zip")]
 
 
