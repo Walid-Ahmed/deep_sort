@@ -39,14 +39,14 @@ def parse_page(link):
     return h
 
 def download_file(bn, url, filename):
-
+    
     download_link = parse_page(url)
     url_components = urlparse(download_link)    
-    
     name, file_ext = splitext(basename(url_components.path))
+    print("Downloading {}".format(name+file_ext))
     file_path = os.path.join(os.getcwd(), bn + name + file_ext)
-    exists = os.path.isfile(file_path)
-    if exists:
+    
+    if os.path.isfile(file_path) and not config["force_download"]:
         pass
     else:
         # opener.retrieve(url, file_path, download_progress)
@@ -74,10 +74,16 @@ def rmv_MACOSX():
 
 def check_folder_exits(name, file_ext):
     print("\nUnzipping file...\n")
+    # cancel unzipping
+    if config["force_unzipping"]:
+        unzipfile(name+file_ext)
+    
     if not os.path.exists(os.path.join(os.getcwd(), name)):
         unzipfile(name+file_ext)
     print("\nUnzipping Complete\n")
 
+
+# first load the config file 
 with open('app.config') as data:
     config = json.load(data)
 
@@ -125,11 +131,16 @@ if config["mode"] != "online" and not os.path.exists(config["detection_file"]):
     os.system('python build_npy.py')
 
 if config["play_demo"]:
-    config["play_demo"] = False
-    with open('app.config', 'w') as outfile:
-        json.dump(config, outfile)
-
     os.system("clear")
     os.system("echo '{}Running Demo....{}'".format(LEFT_STR, RGHT_STR))
     os.system('python run.py')
+
+config["play_demo"] = False
+config["force_download"] = False 
+config["force_unzipping"] = False
+
+with open('app.config', 'w') as outfile:
+    json.dump(config, outfile)
+
+    
 
