@@ -20,6 +20,12 @@ if config["mode"] == "online":
 	mode = "deep_sort_app_online.py"
 	model = config['model']
 
+
+if config["mode"] != "online" and not os.path.exists(config["detection_file"]):
+    os.system("clear")
+    os.system("echo '{}Build Detection....{}'".format(LEFT_STR, RGHT_STR))
+    os.system('python build_npy.py')
+
 show = "python {} \
 	--model={}\
     --sequence_dir={} \
