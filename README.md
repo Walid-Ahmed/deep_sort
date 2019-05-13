@@ -21,7 +21,7 @@ Additional libraries to install are [console progress bar](https://pypi.org/proj
 
 First, clone the repository:
 ```
-git clone https://github.com/nwojke/deep_sort.git
+git clone https://github.com/Walid-Ahmed/deep_sort
 cd deep_sort
 ```
 
