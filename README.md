@@ -3,7 +3,9 @@
 ## Introduction
 
 This repository contains code for an extended version *Simple Online and Realtime Tracking with a Deep Association Metric* (Deep SORT).
-We extend the original [Deep SORT](https://github.com/nwojke/deep_sort) repo to enable online tracking and simpler to use.
+We extend the original [Deep SORT](https://github.com/nwojke/deep_sort) repo to enable online tracking and simpler to use. 
+
+Note: SORT links objects or associate that appear in consecutive frames. Detected objects should be available beforehand or at least the detected objects in the frames need to make association so if the word "detection(s)" is used in deep SORT context it probably means objects' association.
 
 ## Dependencies
 
@@ -25,14 +27,16 @@ git clone https://github.com/nwojke/deep_sort.git
 cd deep_sort
 ```
 
-Then, run preparations file which will download the required files, the neural network will be placed under the folder 'resources\networks\' and MOT challenge benchmark (MOT16) data as a zip file and will be extracted under MOT16 folder then detection files will be created. Finally, a demo will run for the first time to show the end result of Deep SORT algorithm. 
+Then, run preparations file which will download the required files, the neural network will be placed under the folder 'resources\networks\' and MOT challenge benchmark (MOT16) data as a zip file and will be extracted under MOT16 folder then object association files will be created. Finally, a demo will run for the first time to show the end result of Deep SORT algorithm. 
 
-The default behavior of ```prep.py``` is to check if the files already existed but they are very simple checks which can result in some errors to overcome these issues two flags were added to the ```app.config``` which enforces downloading and enforce unzipping files or deleted the corrupted file which will also enforce downloading but only for this file. These files are downloaded to show and experiment the deep SORT potentials and to use custom dataset, executing ```prep.py``` should be ignored and the appropriate flags in ```app.config``` should be modified as well. Please check sections below for more details.
+The default behavior of ```prep.py``` is to check if the files already existed but they are very simple checks which can result in some errors to overcome these issues two flags were added to the ```app.config``` which enforces downloading and enforce unzipping files or deleted the corrupted file which will also enforce downloading only for this file. 
+
+These files are downloaded to show and experiment the deep SORT potentials. To use a custom dataset, executing ```prep.py``` should be ignored and the appropriate flags in ```app.config``` should be modified as well. Please check sections below for more details.
 
 WARNINGS 
   - MOT data requires enough space on disk. 
-  - If the download links are broken please download them manually from [here](https://drive.google.com/open?id=18fKzfqnqhqW3s9zwsCbnVJ5XF2JFeqMp) place them under the designated folder above. 
-  - Unzip the MOT16.zip file manually if it did not automatically.
+  - If the download links are broken please download them manually from [here](https://drive.google.com/open?id=18fKzfqnqhqW3s9zwsCbnVJ5XF2JFeqMp) and place them under the designated folder above. 
+  - Uncompress the MOT16.zip file manually if it did unizip not automatically.
 ``` 
 python prep.py 
 ```
@@ -45,7 +49,7 @@ Simply use ```run.py``` to run the tracker by default it will run the demo displ
 python run.py
 ```
 
-The ```run.py``` is a simple script to execute a modified version of ```deep_sort_app.py``` with appropriate parameters as well as the offline version where it ignores loading detections files (npy files) and instead loads the model, feed the images and display it as video as soon as the results computed which we refer to it as "online" version.  The ```run.py``` checks for the existence of the detection file (npy file) in case of the offline execution which would result in an error otherwise it runs the online directly. The parameters are collected for the ```app.config``` file.
+The ```run.py``` is a simple script to execute a modified version of ```deep_sort_app.py``` with appropriate parameters as well as the offline version. The online version ignores loading object association files (npy files) and instead loads the model, feed the images and display it as video as soon as the results computed which we refer to it as "online" version.  The ```run.py``` checks for the existence of the association file (npy file) in case of the offline execution which would result in an error otherwise it runs the online directly. The parameters are collected for the ```app.config``` file.
 
 In addition, to run a different MOT sequence other than the demo, by modifying the ```app.config``` and pointing the ```sequence_dir``` entry to a different folder of the MOTs and also pointing ```detection_file``` entry to the corresponding ```npy``` file. The entries ```display``` and ```recored_file``` will display the sequence as video and record it as a video file, respectively. 
 
@@ -57,8 +61,7 @@ Common entries of ```app.config``` are:
   - res_struct entry is used to control the resurces folder structure in case of using the default settings.
   - More info about the supported entries in ```app.config``` is found using ```python deep_sort_app.py -h```.
 
-Moreover, to run a custom sequence other than MOTs, there are two steps to follow [Create sequence directory](#Create-sequence-directory) similar to MOT sequence folder structure and [Generate detections](#Generating-detections). To learn more about the intution behined these modifications check it [here](Modifications-Overview). 
-
+Moreover, to run a custom video other than MOTs, there are two steps to follow [Create sequence directory](#Create-sequence-directory) similar to the MOT sequence folder structure and [Generate objects associations](#Generate-objects-associations). But please note that **videos are not single files such as mp4 or avi instead videos are a sequence of frames which referred to as a sequence directory**. 
 
 ## Create sequence directory
 
@@ -66,25 +69,25 @@ A MOT sequence follows standard rules avaliable on the [MOT challenge web page](
 The folder structure contains the following:
 
   - img1 a folder which contains the images for tracking multiple objects
-  - det a folder which contains object positions in each frame
+  - det a folder which contains objects positions in each frame
   - gt a folder which contain the ground truth values
   - seqinfo.ini a file which is contains some information such as frame rate
 
 More details are found on [MOT challenge web page](https://motchallenge.net)
 
 
-## Generating detections
+## Generate objects associations
 
-There is an additional utility that is used to simplyfy detections generations (npy files) which is ```build_npy.py```. The utility uses the same ```app.config``` to point some additional entries. 
+There is an additional utility that is used to simplyfy object association generations (npy files) which is ```build_npy.py```. The utility uses the same ```app.config``` to point some additional entries. 
 
-  - model points to the neural network path.
+  - model points to the neural network model path.
   - mot_dir which points to the parent folder of the MOT sequence directories. (not the MOT sequence itself) 
   - output_dir which points to the output folder where npy files are placed.
 
 WARNING: do not confuse between mot_dir and sequence_dir and this process may take some time
 
 
-## Modifications Overview
+## Modifications overview
 
 The frames are fed one by one to the network and each frame is displayed as soon as the objects' association are computed. This modification saves the npy compile (the association between objects in consecutive frames) time and it is faster to experiment but the images are displayed a bit slower, however, it reflects the actual or near the actual time when deep SORT is deployed.
 
@@ -95,4 +98,4 @@ Moreover, to encapsulate the details of running ```deep_sort_app_online.py``` an
 
 ## More details
 
-please check the original [repo](https://github.com/nwojke/deep_sort) for more details
+Please check the original [repo](https://github.com/nwojke/deep_sort) for more details
