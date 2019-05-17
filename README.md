@@ -61,7 +61,7 @@ Common entries of ```app.config``` are:
   - res_struct entry is used to control the resurces folder structure in case of using the default settings.
   - More info about the supported entries in ```app.config``` is found using ```python deep_sort_app.py -h```.
 
-Moreover, to run a custom video other than MOTs, there are two steps to follow [Create sequence directory](#Create-sequence-directory) similar to the MOT sequence folder structure and [Generate objects associations](#Generate-extended-objects-detections). But please note that **videos are not single files such as mp4 or avi instead videos are a sequence of frames which referred to as a sequence directory**. 
+Moreover, to run a custom video other than MOTs, there are two steps to follow [Create sequence directory](#Create-sequence-directory) similar to the MOT sequence folder structure and [Generate extended objects detections](#Generate-extended-objects-detections). But please note that **videos are not single files such as mp4 or avi instead videos are a sequence of frames which referred to as a sequence directory**. 
 
 ## Create sequence directory
 
