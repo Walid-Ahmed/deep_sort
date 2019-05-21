@@ -101,6 +101,7 @@ class Visualization(object):
 
     def _update_fun(self, frame_callback):
         if self.frame_idx > self.last_idx:
+            # release
             return False  # Terminate
         frame_callback(self, self.frame_idx)
         self.frame_idx += 1

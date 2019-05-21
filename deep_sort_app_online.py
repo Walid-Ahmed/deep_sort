@@ -14,92 +14,37 @@ from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 from tools.generate_detections import * 
 
+HEIGHT = 3
+WIDTH = 4
+FRAMES_NUM = 7
 
-def gather_sequence_info(sequence_dir, detection_file):
+def get_frame(vcap, frame_num):
+    vcap.set(1, frame_num)
+    return vcap.read()[1] # extract spcific frame from a video
+
+
+# load display options from the current video like frame rates, image size.
+def gather_video_info(vcap):
     """Gather sequence information, such as image filenames, detections,
-    groundtruth (if available).
-
-    Parameters
-    ----------
-    sequence_dir : str
-        Path to the MOTChallenge sequence directory.
-    detection_file : str
-        Path to the detection file.
-
-    Returns
-    -------
-    Dict
-        A dictionary of the following sequence information:
-
-        * sequence_name: Name of the sequence
-        * image_filenames: A dictionary that maps frame indices to image
-          filenames.
-        * detections: A numpy array of detections in MOTChallenge format.
-        * groundtruth: A numpy array of ground truth in MOTChallenge format.
-        * image_size: Image size (height, width).
-        * min_frame_idx: Index of the first frame.
-        * max_frame_idx: Index of the last frame.
-
-    """
-    image_dir = os.path.join(sequence_dir, "img1")
-    # image_filenames = {
-    #     int(os.path.splitext(f)[0]): os.path.join(image_dir, f)
-    #     for f in os.listdir(image_dir)}
-
-    image_filenames = {}
-    for f in os.listdir(image_dir):
-        if f != ".DS_Store":
-            image_filenames[int(os.path.splitext(f)[0])] = os.path.join(image_dir, f)
-
-    groundtruth_file = os.path.join(sequence_dir, "gt/gt.txt")
-
-    detections = None
-    if detection_file is not None:
-        pass
-        # detections = np.loadtxt(detection_file, delimiter=',')
-        #detections = np.load(detection_file)
-    groundtruth = None
-    if os.path.exists(groundtruth_file):
-        groundtruth = np.loadtxt(groundtruth_file, delimiter=',')
-
-    if len(image_filenames) > 0:
-        image = cv2.imread(next(iter(image_filenames.values())),
-                           cv2.IMREAD_GRAYSCALE)
-        image_size = image.shape
-    else:
-        image_size = None
-
-    if len(image_filenames) > 0:
-        min_frame_idx = min(image_filenames.keys())
-        max_frame_idx = max(image_filenames.keys())
-    else:
-        min_frame_idx = int(detections[:, 0].min())
-        max_frame_idx = int(detections[:, 0].max())
-
-    info_filename = os.path.join(sequence_dir, "seqinfo.ini")
-    if os.path.exists(info_filename):
-        with open(info_filename, "r") as f:
-            line_splits = [l.split('=') for l in f.read().splitlines()[1:]]
-            info_dict = dict(
-                s for s in line_splits if isinstance(s, list) and len(s) == 2)
-
-        update_ms = 1000 / int(info_dict["frameRate"])
+    groundtruth (if available)."""    
+   
+    if vcap:
+        update_ms = 1000/ int(vcap.get(cv2.CAP_PROP_FPS))
     else:
         update_ms = None
+    max_frame_idx = int(vcap.get(FRAMES_NUM)) - 1
 
-    feature_dim = detections.shape[1] - 10 if detections is not None else 0
+    image_size = (vcap.get(WIDTH), vcap.get(HEIGHT))
+    # feature_dim = detections.shape[1] - 10 if detections is not None else 0
     seq_info = {
-        "sequence_name": os.path.basename(sequence_dir),
-        "image_filenames": image_filenames,
-        "detections": detections,
-        "groundtruth": groundtruth,
+        "sequence_name": str(vcap),
         "image_size": image_size,
-        "min_frame_idx": min_frame_idx,
+        "min_frame_idx": 0,
         "max_frame_idx": max_frame_idx,
-        "feature_dim": feature_dim,
         "update_ms": update_ms
     }
     return seq_info
+
 
 
 def create_detections(detection_mat, frame_idx, min_height=0):
@@ -126,6 +71,12 @@ def create_detections(detection_mat, frame_idx, min_height=0):
     # frame_indices = detection_mat[:, 0].astype(np.int)
     # mask = frame_indices == frame_idx
 
+    
+    # if there is no detections at all
+    if not detection_mat:
+        return []
+
+    # otherwise include features for each detected object
     detection_list = []
     for row in detection_mat:
         bbox, confidence, feature = row[2:6], row[6], row[10:]
@@ -135,7 +86,7 @@ def create_detections(detection_mat, frame_idx, min_height=0):
     return detection_list
 
 
-def run(model, sequence_dir, detection_file, output_file, min_confidence,
+def run(model, vcap, threshold, output_file, min_confidence,
         nms_max_overlap, min_detection_height, max_cosine_distance,
         nn_budget, display, record_file): # I should add model here as an argument
     """Run multi-target tracker on a particular sequence.
@@ -144,8 +95,7 @@ def run(model, sequence_dir, detection_file, output_file, min_confidence,
     ----------
     sequence_dir : str
         Path to the MOTChallenge sequence directory.
-    detection_file : str
-        Path to the detections file.
+    
     output_file : str
         Path to the tracking output file. This file will contain the tracking
         results on completion.
@@ -166,7 +116,7 @@ def run(model, sequence_dir, detection_file, output_file, min_confidence,
         If True, show visualization of intermediate tracking results.
 
     """
-    seq_info = gather_sequence_info(sequence_dir, detection_file)
+    seq_info = gather_video_info(vcap)
     metric = nn_matching.NearestNeighborDistanceMetric(
         "cosine", max_cosine_distance, nn_budget)
     tracker = Tracker(metric)
@@ -182,7 +132,7 @@ def run(model, sequence_dir, detection_file, output_file, min_confidence,
 
         # enable online detections
         # detections = get_detections(model, frame_idx, sequence_dir)
-        detections = create_detections(get_detections(model, frame_idx, sequence_dir), 
+        detections = create_detections(get_detections2(model, get_frame(vcap, frame_idx), frame_idx, threshold), 
             frame_idx, min_detection_height)
         
         detections = [d for d in detections if d.confidence >= min_confidence]
@@ -199,10 +149,7 @@ def run(model, sequence_dir, detection_file, output_file, min_confidence,
 
         # Update visualization.
         if display:
-            image = cv2.imread(
-                seq_info["image_filenames"][frame_idx], cv2.IMREAD_COLOR)
-
-
+            image = get_frame(vcap, frame_idx)
 
             vis.set_image(image.copy())
             vis.draw_detections(detections)
@@ -225,6 +172,7 @@ def run(model, sequence_dir, detection_file, output_file, min_confidence,
     visualizer.viewer.enable_videowriter(record_file)
     visualizer.run(frame_callback)
 
+    vcap.release()
     # Store results.
     f = open(output_file, 'w')
     for row in results:
@@ -237,17 +185,15 @@ def parse_args():
     """
     parser = argparse.ArgumentParser(description="Deep SORT")
 
-
     parser.add_argument(
         "--model", help="Path to detection model",
         default=None, required=True)
-
     parser.add_argument(
-        "--sequence_dir", help="Path to MOTChallenge sequence directory",
+        "--threshold", help="Every detection below this value will be ignored",
+        default=0.5, type=float, required=False)
+    parser.add_argument(
+        "--input_video", help="Path to the input video file.",
         default=None, required=True)
-    parser.add_argument(
-        "--detection_file", help="Path to custom detections.", default=None,
-        required=True)
     parser.add_argument(
         "--output_file", help="Path to the tracking output file. This file will"
         " contain the tracking results on completion.",
@@ -274,7 +220,7 @@ def parse_args():
         default=True, type=bool)
 
     parser.add_argument(
-        "--record_file", help="enter record file name",
+        "--record_video", help="Enter record file name",
         default='x.mp4', type=str)
     return parser.parse_args()
 
@@ -284,8 +230,10 @@ if __name__ == "__main__":
 
     # load the model here
     encoder = create_box_encoder(args.model, batch_size=1)
-
+    # load input video
+    vcap = cv2.VideoCapture(args.input_video)
+    
     run(
-        encoder, args.sequence_dir, args.detection_file, args.output_file,
+        encoder, vcap, args.threshold, args.output_file,
         args.min_confidence, args.nms_max_overlap, args.min_detection_height,
-        args.max_cosine_distance, args.nn_budget, args.display, args.record_file)
+        args.max_cosine_distance, args.nn_budget, args.display, args.record_video)

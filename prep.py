@@ -6,6 +6,7 @@ from os.path import splitext, basename
 from bs4 import BeautifulSoup
 
 import os
+import tarfile
 import zipfile
 import json
 import sys
@@ -44,16 +45,19 @@ def download_file(bn, url, filename):
     url_components = urlparse(download_link)    
     name, file_ext = splitext(basename(url_components.path))
     print("Downloading {}".format(name+file_ext))
-    file_path = os.path.join(os.getcwd(), bn + name + file_ext)
+    file_path = os.path.join(os.getcwd(), os.path.join(bn, name) + file_ext)
     
-    if os.path.isfile(file_path) and not config["force_download"]:
+    
+    if os.path.isfile(file_path):
         pass
     else:
         # opener.retrieve(url, file_path, download_progress)
+        print(download_link)
         urlretrieve(download_link, file_path, download_progress)
     
     print("\nDownload Complete\n")
-    if file_ext == '.zip':
+    
+    if file_ext == '.gz':
         check_folder_exits(name, file_ext)
         # print("\nUnzipping file...\n")
         # unzipfile(filename)
@@ -74,12 +78,13 @@ def rmv_MACOSX():
 
 def check_folder_exits(name, file_ext):
     print("\nUnzipping file...\n")
-    # cancel unzipping
-    if config["force_unzipping"]:
-        unzipfile(name+file_ext)
-    
-    if not os.path.exists(os.path.join(os.getcwd(), name)):
-        unzipfile(name+file_ext)
+    # if not os.path.exists(os.path.join(os.getcwd(), os.path.join(config['networks_path'], 'frozen_inference_graph.pb'))):
+    tar_file = tarfile.open(os.path.join(config['networks_path'], name+file_ext))
+    for file in tar_file.getmembers():
+      file_name = os.path.basename(file.name)
+      if 'frozen_inference_graph.pb' in file_name:
+        tar_file.extract(file, os.path.join(os.getcwd(), config['networks_path']))
+        # unzipfile(name+file_ext)
     print("\nUnzipping Complete\n")
 
 
@@ -88,10 +93,20 @@ with open('app.config') as data:
     config = json.load(data)
 
 # os.path.join(os.getcwd(), basename + filename)
-items = [(config["res_struct"]["networks"], "mars-small128.ckpt-68577", "http://www.mediafire.com/file/i8ulgnq050k8c9v/mars-small128.ckpt-68577/file"), 
-    (config["res_struct"]["networks"], "mars-small128.ckpt-68577.meta", "http://www.mediafire.com/file/m7eciqc1q4ipi5v/mars-small128.ckpt-68577.meta/file"), 
-    (config["res_struct"]["networks"], "mars-small128.pb", "http://www.mediafire.com/file/lch8dhv54obckb2/mars-small128.pb/file"), 
-    ("./", "MOT16.zip", "https://motchallenge.net/data/MOT16.zip")]
+
+
+# What model to download.
+MODEL_NAME = 'ssd_mobilenet_v1_coco_2017_11_17'
+MODEL_FILE = MODEL_NAME + '.tar.gz'
+DOWNLOAD_BASE = 'http://download.tensorflow.org/models/object_detection/'
+
+
+items = [
+    (config["networks_path"], "mars-small128.ckpt-68577", "http://www.mediafire.com/file/i8ulgnq050k8c9v/mars-small128.ckpt-68577/file"), 
+    (config["networks_path"], "mars-small128.ckpt-68577.meta", "http://www.mediafire.com/file/m7eciqc1q4ipi5v/mars-small128.ckpt-68577.meta/file"), 
+    (config["networks_path"], "mars-small128.pb", "http://www.mediafire.com/file/lch8dhv54obckb2/mars-small128.pb/file"),
+    (config["networks_path"], MODEL_NAME + ".pb", DOWNLOAD_BASE + MODEL_FILE)
+]
 
 
 # opener = URLopener()
@@ -105,14 +120,9 @@ pb = ProgressBar(total=100,prefix='Here', suffix='Now', decimals=3, length=50, f
 LEFT_STR = '\n=========================================\n\t'
 RGHT_STR = '\n=========================================\n'
 
-if not os.path.exists(config["res_struct"]["networks"]):
-    os.makedirs(config["res_struct"]["networks"])
+if not os.path.exists(config["networks_path"]):
+    os.makedirs(config["networks_path"])
 
-if not os.path.exists(config["res_struct"]["output_dir"]):
-    os.makedirs(config["res_struct"]["output_dir"])
-
-if not os.path.exists(config["res_struct"]["output_rec"]):
-    os.makedirs(config["res_struct"]["output_rec"])
 
 
 os.system("clear")
@@ -124,23 +134,10 @@ for (bn, filename, url) in items:
         print(e)
         
 
+os.system("clear")
+os.system("echo '{}Running Demo....{}'".format(LEFT_STR, RGHT_STR))
+os.system('python run.py')
 
-if config["mode"] != "online" and not os.path.exists(config["detection_file"]):
-    os.system("clear")
-    os.system("echo '{}Build Detection....{}'".format(LEFT_STR, RGHT_STR))
-    os.system('python build_npy.py')
-
-if config["play_demo"]:
-    os.system("clear")
-    os.system("echo '{}Running Demo....{}'".format(LEFT_STR, RGHT_STR))
-    os.system('python run.py')
-
-config["play_demo"] = False
-config["force_download"] = False 
-config["force_unzipping"] = False
-
-with open('app.config', 'w') as outfile:
-    json.dump(config, outfile)
 
     
 
