@@ -1,3 +1,5 @@
+# Please note: the project has been updated and README does not reflect the updates and will be updated soon 
+
 # Deep SORT
 
 ## Introduction
@@ -27,16 +29,13 @@ git clone https://github.com/nwojke/deep_sort.git
 cd deep_sort
 ```
 
-Then, run preparations file which will download the required files, the neural network will be placed under the folder 'resources\networks\' and MOT challenge benchmark (MOT16) data as a zip file and will be extracted under MOT16 folder then extended object detection files (deep SORT detections) will be created. Finally, a demo will run for the first time to show the end result of Deep SORT algorithm. 
+Then, run preparations file which will download the required files, the neural network will be placed under the folder 'networks' containing the deep sort and SSD networks.
 
 The default behavior of ```prep.py``` is to check if the files already existed but they are very simple checks which can result in some errors to overcome these issues two flags were added to the ```app.config``` which enforces downloading and enforce unzipping files or deleted the corrupted file which will also enforce downloading only for this file. 
 
 These files are downloaded to show and experiment the deep SORT potentials. To use a custom dataset, executing ```prep.py``` should be ignored and the appropriate flags in ```app.config``` should be modified as well. Please check sections below for more details.
 
-WARNINGS 
-  - MOT data requires enough space on disk. 
-  - If the download links are broken please download them manually from [here](https://drive.google.com/open?id=18fKzfqnqhqW3s9zwsCbnVJ5XF2JFeqMp) and place them under the designated folder above. 
-  - Uncompress the MOT16.zip file manually if it did unizip not automatically.
+
 ``` 
 python prep.py 
 ```
