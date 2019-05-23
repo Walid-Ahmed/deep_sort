@@ -28,9 +28,11 @@ git clone https://github.com/nwojke/deep_sort.git
 cd deep_sort
 ```
 
-Then, run preparations file which will download the required files (4 files), the neural networks will be placed under the folder 'networks' containing the deep SORT and SSD networks.
+### This part may not be required
 
-The default behavior of ```prep.py``` is to check if the files already existed, but they are straightforward checks which can result in some errors to overcome these issues deleting the corrupted file would enforce downloading this file. Ideally, it is required to run only once.
+Then, run preparations file which will download the required files (4 files), the neural networks will be placed under the folder 'networks' containing the deep SORT and SSD networks. However, this repo is self-contained only run ```prep.py``` if some files are corrupted. Ideally, it is required to run only once.
+
+The default behavior of ```prep.py``` is to check if the files already existed, but they are straightforward checks which can result in some errors to overcome these issues deleting the corrupted file would enforce downloading this file. 
 
 
 ``` 
@@ -57,7 +59,7 @@ Common entries of ```app.config``` are:
   - networks_path: folder location where all neural networks reside in.
   - record_video: the location of the video output (record) file.
   - frame_rate: record file frames per second, the same frame rate of the input video is used if this entry does not exist.
-  - More info about the supported entries in ```app.config``` is found using ```python deep_sort_app.py -h```.
+  - More info about the supported entries in ```app.config``` is found using ```python deep_sort_app_online.py -h```.
 
 
 
