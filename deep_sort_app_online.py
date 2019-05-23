@@ -24,14 +24,14 @@ def get_frame(vcap, frame_num):
 
 
 # load display options from the current video like frame rates, image size.
-def gather_video_info(vcap):
+def gather_video_info(vcap, f_rate):
     """Gather sequence information, such as image filenames, detections,
     groundtruth (if available)."""    
    
-    if vcap:
-        update_ms = 1000/ int(vcap.get(cv2.CAP_PROP_FPS))
-    else:
-        update_ms = None
+    # if vcap:
+    #     update_ms = 1000/ int(vcap.get(cv2.CAP_PROP_FPS))
+    # else:
+    #     update_ms = None
     max_frame_idx = int(vcap.get(FRAMES_NUM)) - 1
 
     image_size = (vcap.get(WIDTH), vcap.get(HEIGHT))
@@ -41,7 +41,7 @@ def gather_video_info(vcap):
         "image_size": image_size,
         "min_frame_idx": 0,
         "max_frame_idx": max_frame_idx,
-        "update_ms": update_ms
+        "update_ms": f_rate
     }
     return seq_info
 
@@ -86,7 +86,7 @@ def create_detections(detection_mat, frame_idx, min_height=0):
     return detection_list
 
 
-def run(model, vcap, threshold, output_file, min_confidence,
+def run(model, vcap, f_rate, threshold, output_file, min_confidence,
         nms_max_overlap, min_detection_height, max_cosine_distance,
         nn_budget, display, record_file): # I should add model here as an argument
     """Run multi-target tracker on a particular sequence.
@@ -116,7 +116,7 @@ def run(model, vcap, threshold, output_file, min_confidence,
         If True, show visualization of intermediate tracking results.
 
     """
-    seq_info = gather_video_info(vcap)
+    seq_info = gather_video_info(vcap, f_rate)
     metric = nn_matching.NearestNeighborDistanceMetric(
         "cosine", max_cosine_distance, nn_budget)
     tracker = Tracker(metric)
@@ -169,7 +169,7 @@ def run(model, vcap, threshold, output_file, min_confidence,
     else:
         visualizer = visualization.NoVisualization(seq_info)
     # here I should enable video recording
-    visualizer.viewer.enable_videowriter(record_file)
+    visualizer.viewer.enable_videowriter(output_filename=record_file, fps=f_rate)
     visualizer.run(frame_callback)
 
     vcap.release()
@@ -198,6 +198,9 @@ def parse_args():
         "--output_file", help="Path to the tracking output file. This file will"
         " contain the tracking results on completion.",
         default="/tmp/hypotheses.txt")
+    parser.add_argument(
+        "--frame_rate", help="Record file's number of frames per second",
+        default=None, required=False)
     parser.add_argument(
         "--min_confidence", help="Detection confidence threshold. Disregard "
         "all detections that have a confidence lower than this value.",
@@ -232,8 +235,10 @@ if __name__ == "__main__":
     encoder = create_box_encoder(args.model, batch_size=1)
     # load input video
     vcap = cv2.VideoCapture(args.input_video)
-    
+    f_rate = args.frame_rate
+    if not args.frame_rate:
+        f_rate = vcap.get(cv2.CAP_PROP_FPS)
     run(
-        encoder, vcap, args.threshold, args.output_file,
+        encoder, vcap, int(f_rate), args.threshold, args.output_file,
         args.min_confidence, args.nms_max_overlap, args.min_detection_height,
         args.max_cosine_distance, args.nn_budget, args.display, args.record_video)
