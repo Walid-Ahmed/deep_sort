@@ -17,11 +17,12 @@ with open('app.config') as data:
 show = "python deep_sort_app_online.py \
 	--model={}\
     --input_video={} \
+    --frame_rate={}\
     --threshold={}\
     --min_confidence={} \
     --nn_budget={} \
     --display={} \
-    --record_video={}".format(config["f_model"], config["input_video"], float(config["detection_threshold"]), config["min_confidence"], config["nn_budget"], config["display"], config["record_video"])
+    --record_video={}".format(config["f_model"], config["input_video"], int(config['frame_rate']), float(config["detection_threshold"]), config["min_confidence"], config["nn_budget"], config["display"], config["record_video"])
 
 os.system(show)
 
