@@ -3,6 +3,7 @@ from __future__ import division, print_function, absolute_import
 
 import argparse
 import os
+import shutil
 
 import cv2
 import numpy as np
@@ -17,6 +18,7 @@ from tools.generate_detections import *
 HEIGHT = 3
 WIDTH = 4
 FRAMES_NUM = 7
+num_objects = 0
 
 def get_frame(vcap, frame_num):
     vcap.set(1, frame_num)
@@ -122,7 +124,22 @@ def run(model, vcap, f_rate, threshold, output_file, min_confidence,
     tracker = Tracker(metric)
     results = []
 
+    
+    
+
     def frame_callback(vis, frame_idx):
+
+        def save_object():
+            objects_path = 'objects/{}'
+            if not os.path.exists(objects_path.format(track.track_id)):
+                os.makedirs(objects_path.format(track.track_id))
+            
+            global num_objects
+            cv2.imwrite(os.path.join(objects_path.format(track.track_id), 
+                '{}_{}_{}.jpg'.format(frame_idx, track.track_id, num_objects)), 
+                image[int(miny): int(maxy), int(minx): int(maxx), :])
+            num_objects += 1
+
         print("Processing frame %05d" % frame_idx)
         # Load image and generate detections.
         # this is the part where to make online, get a detection for a single frame
@@ -148,9 +165,10 @@ def run(model, vcap, f_rate, threshold, output_file, min_confidence,
         tracker.update(detections)
 
         # Update visualization.
-        if display:
-            image = get_frame(vcap, frame_idx)
+        image = get_frame(vcap, frame_idx)
 
+        if display:
+            #image = get_frame(vcap, frame_idx)
             vis.set_image(image.copy())
             vis.draw_detections(detections)
             vis.draw_trackers(tracker.tracks)
@@ -162,6 +180,14 @@ def run(model, vcap, f_rate, threshold, output_file, min_confidence,
             bbox = track.to_tlwh()
             results.append([
                 frame_idx, track.track_id, bbox[0], bbox[1], bbox[2], bbox[3]])
+
+
+            # saving detected objects
+            minx, miny, maxx, maxy = track.to_tlbr()
+            save_object()
+
+        
+            
 
     # Run tracker.
     if display:
@@ -178,6 +204,8 @@ def run(model, vcap, f_rate, threshold, output_file, min_confidence,
     for row in results:
         print('%d,%d,%.2f,%.2f,%.2f,%.2f,1,-1,-1,-1' % (
             row[0], row[1], row[2], row[3], row[4], row[5]),file=f)
+
+
 
 
 def parse_args():
@@ -197,7 +225,7 @@ def parse_args():
     parser.add_argument(
         "--output_file", help="Path to the tracking output file. This file will"
         " contain the tracking results on completion.",
-        default="/tmp/hypotheses.txt")
+        default="/tmp/hypotheses.csv")
     parser.add_argument(
         "--frame_rate", help="Record file's number of frames per second",
         default=None, required=False)
