@@ -61,7 +61,6 @@ class SSD(object):
 					abs(xmax-xmin) * width, 
 					abs(ymax-ymin) * height, 
 					output_dict['detection_scores'][i], -1, -1, -1])
-		print(len(detections))
 		return np.array(detections)
 
 	def run_inference_for_single_image(self, image, image_index, threshold):
