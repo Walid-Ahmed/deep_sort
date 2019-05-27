@@ -124,13 +124,15 @@ def run(model, vcap, f_rate, threshold, output_file, min_confidence,
     tracker = Tracker(metric)
     results = []
 
-    
+    # delete tracking results if exists before running new video
+    if os.path.exists('Tracking_Results'):
+        shutil.rmtree('Tracking_Results', ignore_errors=True, onerror=None)
     
 
     def frame_callback(vis, frame_idx):
 
         def save_object():
-            objects_path = 'objects/{}'
+            objects_path = 'Tracking_Results/{}'
             if not os.path.exists(objects_path.format(track.track_id)):
                 os.makedirs(objects_path.format(track.track_id))
             
@@ -200,7 +202,9 @@ def run(model, vcap, f_rate, threshold, output_file, min_confidence,
 
     vcap.release()
     # Store results.
-    f = open(output_file, 'w')
+
+    # f = open(output_file, 'w')
+    f = open('Tracking_Results/tr.csv', 'w')
     for row in results:
         print('%d,%d,%.2f,%.2f,%.2f,%.2f,1,-1,-1,-1' % (
             row[0], row[1], row[2], row[3], row[4], row[5]),file=f)
