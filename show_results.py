@@ -40,7 +40,7 @@ def gather_video_info(vcap, f_rate):
     return seq_info
 
 
-def run(vcap, tk_id, f_rate, update_ms=None, video_filename=None):
+def run(vcap, tk_ids, f_rate, update_ms=None, video_filename=None):
     """Run tracking result visualization.
 
     Parameters
@@ -61,6 +61,7 @@ def run(vcap, tk_id, f_rate, update_ms=None, video_filename=None):
         If not None, a video of the tracking results is written to this file.
 
     """
+
     seq_info = gather_video_info(vcap, f_rate)
     results = np.loadtxt('Tracking_Results/tr.csv', delimiter=',')
     
@@ -70,8 +71,8 @@ def run(vcap, tk_id, f_rate, update_ms=None, video_filename=None):
         image = get_frame(vcap, frame_idx)
         vis.set_image(image.copy())
 
-        # mask = results[:, 0].astype(np.int) == frame_idx #and results[:, 1].astype(np.int) in tk_ids
-        mask = np.logical_and(results[:, 0].astype(np.int) == frame_idx, results[:, 1].astype(np.int) == tk_id)
+        # mask = np.logical_and(results[:, 0].astype(np.int) == frame_idx, results[:, 1].astype(np.int) == tk_id)
+        mask = np.logical_and(results[:, 0].astype(np.int) == frame_idx, np.isin(results[:, 1].astype(np.int), np.array(tk_ids)))
         track_ids = results[mask, 1].astype(np.int)
         boxes = results[mask, 2:6]
         vis.draw_groundtruth(track_ids, boxes)
@@ -95,8 +96,8 @@ def parse_args():
         "--input_video", help="Path to input video.",
         default=None, required=True)
     parser.add_argument(
-        "--object_id", help="object id to track on video.",
-        type=int, default=None)
+        "--object_ids", help="object id to track on video.",
+        nargs='+', type=int, default=None)
     parser.add_argument(
         "--frame_rate", help="fps for the output video.",
         type=int, default=None)
@@ -118,6 +119,7 @@ vcap = cv2.VideoCapture(args.input_video)
 f_rate = args.frame_rate
 if not args.frame_rate:
     f_rate = vcap.get(cv2.CAP_PROP_FPS)
-
-run(vcap=vcap, tk_id=args.object_id, f_rate=f_rate, update_ms=args.update_ms, video_filename=args.output_file)
+# print(args.object_ids)
+# # print(np.array(args.object_ids, dtype=int))
+run(vcap=vcap, tk_ids=args.object_ids, f_rate=f_rate, update_ms=args.update_ms, video_filename=args.output_file)
     

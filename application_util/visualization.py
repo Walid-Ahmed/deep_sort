@@ -59,26 +59,60 @@ class NoVisualization(object):
     sequence to update the tracker without performing any visualization.
     """
 
-    def __init__(self, seq_info):
+    def __init__(self, seq_info, update_ms):
+        image_shape = seq_info["image_size"][::-1]
+        aspect_ratio = float(image_shape[1]) / image_shape[0]
+        image_shape = 1024, int(aspect_ratio * 1024)
+        self.viewer = ImageViewer(
+            update_ms, image_shape, "Figure %s" % seq_info["sequence_name"])
+        self.viewer.thickness = 2
         self.frame_idx = seq_info["min_frame_idx"]
         self.last_idx = seq_info["max_frame_idx"]
 
+
     def set_image(self, image):
-        pass
+        self.viewer.image = image
 
     def draw_groundtruth(self, track_ids, boxes):
-        pass
+        self.viewer.thickness = 2
+        for track_id, box in zip(track_ids, boxes):
+            self.viewer.color = create_unique_color_uchar(track_id)
+            self.viewer.rectangle(*box.astype(np.int), label=str(track_id))
 
     def draw_detections(self, detections):
-        pass
+        self.viewer.thickness = 2
+        self.viewer.color = 0, 0, 255
+        for i, detection in enumerate(detections):
+            self.viewer.rectangle(*detection.tlwh)
 
-    def draw_trackers(self, trackers):
-        pass
+    def draw_trackers(self, tracks):
+        self.viewer.thickness = 2
+        for track in tracks:
+            if not track.is_confirmed() or track.time_since_update > 0:
+                continue
+            self.viewer.color = create_unique_color_uchar(track.track_id)
+            self.viewer.rectangle(
+                *track.to_tlwh().astype(np.int), label=str(track.track_id))
+            # self.viewer.gaussian(track.mean[:2], track.covariance[:2, :2],
+            #                      label="%d" % track.track_id)
+
 
     def run(self, frame_callback):
-        while self.frame_idx <= self.last_idx:
-            frame_callback(self, self.frame_idx)
-            self.frame_idx += 1
+        self.viewer.run_no_video(lambda: self._update_fun(frame_callback))
+
+    def _update_fun(self, frame_callback):
+        if self.frame_idx > self.last_idx:
+            # release
+            return False  # Terminate
+        frame_callback(self, self.frame_idx)
+        self.frame_idx += 1
+        return True
+
+
+    # def run(self, frame_callback):
+    #     while self.frame_idx <= self.last_idx:
+    #         frame_callback(self, self.frame_idx)
+    #         self.frame_idx += 1
 
 
 class Visualization(object):
@@ -132,4 +166,3 @@ class Visualization(object):
                 *track.to_tlwh().astype(np.int), label=str(track.track_id))
             # self.viewer.gaussian(track.mean[:2], track.covariance[:2, :2],
             #                      label="%d" % track.track_id)
-#

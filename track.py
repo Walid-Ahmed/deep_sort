@@ -8,8 +8,9 @@ with open('track.config') as data:
 # Track specific object
 track = 'python show_results.py\
 	--input_video={}\
-	--object_id={}\
+	--object_id {}\
 	--frame_rate={}\
 	--output_file={}\
-	'.format(config['input_video'], config['object_id'], config['frame_rate'], config['record_video'])
+	'.format(config['input_video'], config['object_ids'], config['frame_rate'], config['record_video'])
+
 os.system(track)
