@@ -21,24 +21,24 @@ from tools.utils import label_map_util
 # from utils import visualization_utils as vis_util
 
 
-# # What model to download.
-# MODEL_NAME = 'ssd_mobilenet_v1_coco_2017_11_17'
-# MODEL_FILE = MODEL_NAME + '.tar.gz'
-# DOWNLOAD_BASE = 'http://download.tensorflow.org/models/object_detection/'
+# What model to download.
+MODEL_NAME = 'ssd_mobilenet_v1_coco_2017_11_17'
+MODEL_FILE = MODEL_NAME + '.tar.gz'
+DOWNLOAD_BASE = 'http://download.tensorflow.org/models/object_detection/'
 
-# # Path to frozen detection graph. This is the actual model that is used for the object detection.
-# PATH_TO_FROZEN_GRAPH = 'tools/' + MODEL_NAME + '/frozen_inference_graph.pb'
+# Path to frozen detection graph. This is the actual model that is used for the object detection.
+PATH_TO_FROZEN_GRAPH = 'tools/' + MODEL_NAME + '/frozen_inference_graph.pb'
 
 # List of the strings that is used to add correct label for each box.
 PATH_TO_LABELS = os.path.join('data', 'mscoco_label_map.pbtxt')
 
-class Model(object):
+class SSD(object):
 
-	def __init__(self, frozen_model_path):
+	def __init__(self):
 		self.detection_graph = tf.Graph()
 		with self.detection_graph.as_default():
 			od_graph_def = tf.GraphDef()
-			with tf.gfile.GFile(frozen_model_path, 'rb') as fid:
+			with tf.gfile.GFile(PATH_TO_FROZEN_GRAPH, 'rb') as fid:
 				serialized_graph = fid.read()
 				od_graph_def.ParseFromString(serialized_graph)
 				tf.import_graph_def(od_graph_def, name='')

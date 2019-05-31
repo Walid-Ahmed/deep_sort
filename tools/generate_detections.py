@@ -1,5 +1,5 @@
 # vim: expandtab:ts=4:sw=4
-from tools.detection_models import SSD
+from tools.detection_models import Model
 import os
 import errno
 import argparse
@@ -8,8 +8,12 @@ import cv2
 import tensorflow as tf
 
 
-ssd_model = SSD()
+# ssd_model = SSD()
+model = None
 
+def load_model(frozen_model_path):
+    global model
+    model = Model(frozen_model_path)
 
 def _run_in_batches(f, data_dict, out, batch_size):
     data_len = len(out)
@@ -158,7 +162,7 @@ def create_box_encoder(model_filename, input_name="images",
 
 def get_detections2(encoder, bgr_image, frame_idx, threshold):
     # rows are the detections resulting from loading SSD in the MOT format
-    rows = ssd_model.run_inference_for_single_image(bgr_image, frame_idx, threshold)
+    rows = model.run_inference_for_single_image(bgr_image, frame_idx, threshold)
     if len(rows) <= 0:
         return None
     features = encoder(bgr_image, rows[:, 2:6].copy())
@@ -166,108 +170,108 @@ def get_detections2(encoder, bgr_image, frame_idx, threshold):
                        in zip(rows, features)]
 
 
-def generate_detections(encoder, mot_dir, output_dir, detection_dir=None):
-    """Generate detections with features.
+# def generate_detections(encoder, mot_dir, output_dir, detection_dir=None):
+#     """Generate detections with features.
 
-    Parameters
-    ----------
-    encoder : Callable[image, ndarray] -> ndarray
-        The encoder function takes as input a BGR color image and a matrix of
-        bounding boxes in format `(x, y, w, h)` and returns a matrix of
-        corresponding feature vectors.
-    mot_dir : str
-        Path to the MOTChallenge directory (can be either train or test).
-    output_dir
-        Path to the output directory. Will be created if it does not exist.
-    detection_dir
-        Path to custom detections. The directory structure should be the default
-        MOTChallenge structure: `[sequence]/det/det.txt`. If None, uses the
-        standard MOTChallenge detections.
+#     Parameters
+#     ----------
+#     encoder : Callable[image, ndarray] -> ndarray
+#         The encoder function takes as input a BGR color image and a matrix of
+#         bounding boxes in format `(x, y, w, h)` and returns a matrix of
+#         corresponding feature vectors.
+#     mot_dir : str
+#         Path to the MOTChallenge directory (can be either train or test).
+#     output_dir
+#         Path to the output directory. Will be created if it does not exist.
+#     detection_dir
+#         Path to custom detections. The directory structure should be the default
+#         MOTChallenge structure: `[sequence]/det/det.txt`. If None, uses the
+#         standard MOTChallenge detections.
 
-    """
-    if detection_dir is None:
-        detection_dir = mot_dir
-    try:
-        os.makedirs(output_dir)
-    except OSError as exception:
-        if exception.errno == errno.EEXIST and os.path.isdir(output_dir):
-            pass
-        else:
-            raise ValueError(
-                "Failed to created output directory '%s'" % output_dir)
+#     """
+#     if detection_dir is None:
+#         detection_dir = mot_dir
+#     try:
+#         os.makedirs(output_dir)
+#     except OSError as exception:
+#         if exception.errno == errno.EEXIST and os.path.isdir(output_dir):
+#             pass
+#         else:
+#             raise ValueError(
+#                 "Failed to created output directory '%s'" % output_dir)
 
-    for sequence in os.listdir(mot_dir):
-        print("Processing %s" % sequence)
-        if (sequence == ".DS_Store"):
-            continue
-        sequence_dir = os.path.join(mot_dir, sequence)
+#     for sequence in os.listdir(mot_dir):
+#         print("Processing %s" % sequence)
+#         if (sequence == ".DS_Store"):
+#             continue
+#         sequence_dir = os.path.join(mot_dir, sequence)
 
-        image_dir = os.path.join(sequence_dir, "img1")
-        # image_filenames = {
-        #     int(os.path.splitext(f)[0]): os.path.join(image_dir, f)
-        #     for f in os.listdir(image_dir)}
-        image_filenames = {}
-        for f in os.listdir(image_dir):
-            if f != ".DS_Store":
-                image_filenames[int(os.path.splitext(f)[0])] = os.path.join(image_dir, f)
+#         image_dir = os.path.join(sequence_dir, "img1")
+#         # image_filenames = {
+#         #     int(os.path.splitext(f)[0]): os.path.join(image_dir, f)
+#         #     for f in os.listdir(image_dir)}
+#         image_filenames = {}
+#         for f in os.listdir(image_dir):
+#             if f != ".DS_Store":
+#                 image_filenames[int(os.path.splitext(f)[0])] = os.path.join(image_dir, f)
         
 
-        detection_file = os.path.join(
-            detection_dir, sequence, "det/det.txt")
-        detections_in = np.loadtxt(detection_file, delimiter=',')
-        detections_out = []
+#         detection_file = os.path.join(
+#             detection_dir, sequence, "det/det.txt")
+#         detections_in = np.loadtxt(detection_file, delimiter=',')
+#         detections_out = []
 
-        frame_indices = detections_in[:, 0].astype(np.int)
-        min_frame_idx = frame_indices.astype(np.int).min()
-        max_frame_idx = frame_indices.astype(np.int).max()
-        for frame_idx in range(min_frame_idx, max_frame_idx + 1):
-            print("Frame %05d/%05d" % (frame_idx, max_frame_idx))
-            mask = frame_indices == frame_idx
-            rows = detections_in[mask]
+#         frame_indices = detections_in[:, 0].astype(np.int)
+#         min_frame_idx = frame_indices.astype(np.int).min()
+#         max_frame_idx = frame_indices.astype(np.int).max()
+#         for frame_idx in range(min_frame_idx, max_frame_idx + 1):
+#             print("Frame %05d/%05d" % (frame_idx, max_frame_idx))
+#             mask = frame_indices == frame_idx
+#             rows = detections_in[mask]
 
-            if frame_idx not in image_filenames:
-                print("WARNING could not find image for frame %d" % frame_idx)
-                continue
-            bgr_image = cv2.imread(
-                image_filenames[frame_idx], cv2.IMREAD_COLOR)
-            features = encoder(bgr_image, rows[:, 2:6].copy())
-            # print(features[:, 0])
+#             if frame_idx not in image_filenames:
+#                 print("WARNING could not find image for frame %d" % frame_idx)
+#                 continue
+#             bgr_image = cv2.imread(
+#                 image_filenames[frame_idx], cv2.IMREAD_COLOR)
+#             features = encoder(bgr_image, rows[:, 2:6].copy())
+#             # print(features[:, 0])
             
-            detections_out += [np.r_[(row, feature)] for row, feature
-                               in zip(rows, features)]
+#             detections_out += [np.r_[(row, feature)] for row, feature
+#                                in zip(rows, features)]
 
-        output_filename = os.path.join(output_dir, "%s.npy" % sequence)
-        np.save(
-            output_filename, np.asarray(detections_out), allow_pickle=False)
-
-
-def parse_args():
-    """Parse command line arguments.
-    """
-    parser = argparse.ArgumentParser(description="Re-ID feature extractor")
-    parser.add_argument(
-        "--model",
-        default="resources/networks/mars-small128.pb",
-        help="Path to freezed inference graph protobuf.")
-    parser.add_argument(
-        "--mot_dir", help="Path to MOTChallenge directory (train or test)",
-        required=True)
-    parser.add_argument(
-        "--detection_dir", help="Path to custom detections. Defaults to "
-        "standard MOT detections Directory structure should be the default "
-        "MOTChallenge structure: [sequence]/det/det.txt", default=None)
-    parser.add_argument(
-        "--output_dir", help="Output directory. Will be created if it does not"
-        " exist.", default="detections")
-    return parser.parse_args()
+#         output_filename = os.path.join(output_dir, "%s.npy" % sequence)
+#         np.save(
+#             output_filename, np.asarray(detections_out), allow_pickle=False)
 
 
-def main():
-    args = parse_args()
-    encoder = create_box_encoder(args.model, batch_size=32)
-    generate_detections(encoder, args.mot_dir, args.output_dir,
-                        args.detection_dir)
+# def parse_args():
+#     """Parse command line arguments.
+#     """
+#     parser = argparse.ArgumentParser(description="Re-ID feature extractor")
+#     parser.add_argument(
+#         "--model",
+#         default="resources/networks/mars-small128.pb",
+#         help="Path to freezed inference graph protobuf.")
+#     parser.add_argument(
+#         "--mot_dir", help="Path to MOTChallenge directory (train or test)",
+#         required=True)
+#     parser.add_argument(
+#         "--detection_dir", help="Path to custom detections. Defaults to "
+#         "standard MOT detections Directory structure should be the default "
+#         "MOTChallenge structure: [sequence]/det/det.txt", default=None)
+#     parser.add_argument(
+#         "--output_dir", help="Output directory. Will be created if it does not"
+#         " exist.", default="detections")
+#     return parser.parse_args()
 
 
-if __name__ == "__main__":
-    main()
+# def main():
+#     args = parse_args()
+#     encoder = create_box_encoder(args.model, batch_size=32)
+#     generate_detections(encoder, args.mot_dir, args.output_dir,
+#                         args.detection_dir)
+
+
+# if __name__ == "__main__":
+#     main()

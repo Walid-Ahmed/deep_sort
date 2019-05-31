@@ -14,6 +14,7 @@ from deep_sort import nn_matching
 from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 from tools.generate_detections import * 
+from save_results import *
 
 HEIGHT = 3
 WIDTH = 4
@@ -88,9 +89,11 @@ def create_detections(detection_mat, frame_idx, min_height=0):
     return detection_list
 
 
-def run(model, vcap, f_rate, threshold, output_file, min_confidence,
+def run(frozen_model_path, model, vcap, f_rate, threshold, output_file, min_confidence,
         nms_max_overlap, min_detection_height, max_cosine_distance,
         nn_budget, display, record_file): # I should add model here as an argument
+
+    
     """Run multi-target tracker on a particular sequence.
 
     Parameters
@@ -118,19 +121,23 @@ def run(model, vcap, f_rate, threshold, output_file, min_confidence,
         If True, show visualization of intermediate tracking results.
 
     """
+    # load detection model 
+    load_model(frozen_model_path)
     seq_info = gather_video_info(vcap, f_rate)
     metric = nn_matching.NearestNeighborDistanceMetric(
         "cosine", max_cosine_distance, nn_budget)
     tracker = Tracker(metric)
     results = []
 
-    
+    # delete tracking results if exists before running new video
+    if os.path.exists('Tracking_Results'):
+        shutil.rmtree('Tracking_Results', ignore_errors=True, onerror=None)
     
 
     def frame_callback(vis, frame_idx):
 
         def save_object():
-            objects_path = 'objects/{}'
+            objects_path = 'Tracking_Results/{}'
             if not os.path.exists(objects_path.format(track.track_id)):
                 os.makedirs(objects_path.format(track.track_id))
             
@@ -167,11 +174,11 @@ def run(model, vcap, f_rate, threshold, output_file, min_confidence,
         # Update visualization.
         image = get_frame(vcap, frame_idx)
 
-        if display:
+        # if display:
             #image = get_frame(vcap, frame_idx)
-            vis.set_image(image.copy())
-            vis.draw_detections(detections)
-            vis.draw_trackers(tracker.tracks)
+        vis.set_image(image.copy())
+        vis.draw_detections(detections)
+        vis.draw_trackers(tracker.tracks)
 
         # Store results.
         for track in tracker.tracks:
@@ -193,18 +200,18 @@ def run(model, vcap, f_rate, threshold, output_file, min_confidence,
     if display:
         visualizer = visualization.Visualization(seq_info, update_ms=5)
     else:
-        visualizer = visualization.NoVisualization(seq_info)
-    # here I should enable video recording
+        visualizer = visualization.NoVisualization(seq_info, update_ms=5)
+
     visualizer.viewer.enable_videowriter(output_filename=record_file, fps=f_rate)
     visualizer.run(frame_callback)
-
     vcap.release()
     # Store results.
-    f = open(output_file, 'w')
+
+    # f = open(output_file, 'w')
+    f = open('Tracking_Results/tr.csv', 'w')
     for row in results:
         print('%d,%d,%.2f,%.2f,%.2f,%.2f,1,-1,-1,-1' % (
             row[0], row[1], row[2], row[3], row[4], row[5]),file=f)
-
 
 
 
@@ -212,9 +219,12 @@ def parse_args():
     """ Parse command line arguments.
     """
     parser = argparse.ArgumentParser(description="Deep SORT")
+    parser.add_argument(
+        "--frozen", help="Path to detection model",
+        default=None, required=True)
 
     parser.add_argument(
-        "--model", help="Path to detection model",
+        "--model", help="Path to deep sort model",
         default=None, required=True)
     parser.add_argument(
         "--threshold", help="Every detection below this value will be ignored",
@@ -249,7 +259,6 @@ def parse_args():
     parser.add_argument(
         "--display", help="Show intermediate tracking results",
         default=True, type=bool)
-
     parser.add_argument(
         "--record_video", help="Enter record file name",
         default='x.mp4', type=str)
@@ -266,7 +275,13 @@ if __name__ == "__main__":
     f_rate = args.frame_rate
     if not args.frame_rate:
         f_rate = vcap.get(cv2.CAP_PROP_FPS)
-    run(
-        encoder, vcap, int(f_rate), args.threshold, args.output_file,
+
+    run(args.frozen, encoder, vcap, int(f_rate), args.threshold, args.output_file,
         args.min_confidence, args.nms_max_overlap, args.min_detection_height,
         args.max_cosine_distance, args.nn_budget, args.display, args.record_video)
+
+    
+
+    
+
+
