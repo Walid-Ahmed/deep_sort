@@ -104,22 +104,19 @@ def draw_groundtruth(track_id, box, img):
     color = create_unique_color_uchar(track_id)
     rectangle(*box.astype(np.int), img, color, thickness, label=str(track_id))
 
-def write_video_with_object_i(orig_video_path, object_i, tracking_of_object_i, fourcc_string='mp4v'):
+def write_video_with_object_i(orig_video_path, object_i, tracking_of_object_i, avg_w, avg_h, fourcc_string='mp4v'):
 
     def extract(x, y, w, h, img):
         
         black_img = np.zeros(img.shape, np.uint8)
         x1, y1 = int(x), int(y)
         x2, y2 = int(x + w), int(y + h)
-        black_img[y1:y2, x1:x2, :] = 1
-        print(abs(y2-y1), abs(x2-x1))
-
-        # return np.transpose(np.multiply(black_img, img), (1, 0, 2))
-        return np.multiply(black_img, img)
+        return img[y1:y2, x1:x2, :]
+        
 
     vcap = cv2.VideoCapture(orig_video_path)
     fps = vcap.get(cv2.CAP_PROP_FPS)
-    img_size = (int(vcap.get(HEIGHT)), int(vcap.get(WIDTH)))
+    img_size = (avg_w, avg_h)
     
     fourcc = cv2.VideoWriter_fourcc(*fourcc_string) # Be sure to use lower case
 
@@ -140,7 +137,7 @@ def write_video_with_object_i(orig_video_path, object_i, tracking_of_object_i, f
             break
 
 
-        output_frame = np.zeros((int(vcap.get(HEIGHT)), int(vcap.get(WIDTH)), 3))
+        
         
         if frame_idx in frames_of_object_i:
             frame_mask = tracking_of_object_i[:, 0].astype(np.int) == frame_idx
@@ -153,7 +150,7 @@ def write_video_with_object_i(orig_video_path, object_i, tracking_of_object_i, f
             # vwriter.write(output_frame)
             # g = cv2.resize(output_frame, img_size)
             # print(type(g))
-            vwriter.write(output_frame)    
+            vwriter.write(cv2.resize(output_frame, img_size, interpolation = cv2.INTER_LINEAR))    
             # draw_groundtruth(object_i, box, img)
             
 
@@ -172,10 +169,14 @@ def save_video_results(orig_video_path):
     results = np.loadtxt('Tracking_Results/tr.csv', delimiter=',')
     # select all objects unique
     ids = np.unique(results[:, 1].astype(int))
+
+    # find the averge size for each object id
     for i in ids:
         mask_of_object_i = results[:, 1] == i
         tracking_of_object_i = results[mask_of_object_i, :]
-        write_video_with_object_i(orig_video_path, i, tracking_of_object_i)
+        avg_w, avg_h = (int(np.average(tracking_of_object_i[:, 4])), int(np.average(tracking_of_object_i[:, 5])))
+        
+        write_video_with_object_i(orig_video_path, i, tracking_of_object_i, avg_w, avg_h)
 
     
 
