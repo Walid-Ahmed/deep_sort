@@ -1,8 +1,11 @@
 # vim: expandtab:ts=4:sw=4
 import argparse
 
-import cv2
+
 import numpy as np
+import cv2
+import os
+import shutil
 import colorsys
 
 from deep_sort.iou_matching import iou
@@ -13,7 +16,7 @@ DEFAULT_UPDATE_MS = 20
 HEIGHT = 3
 WIDTH = 4
 FRAMES_NUM = 7
-
+c = 0
 
 def create_unique_color_float(tag, hue_step=0.41):
     """Create a unique RGB color code for a given track id (tag).
@@ -101,15 +104,34 @@ def draw_groundtruth(track_id, box, img):
     color = create_unique_color_uchar(track_id)
     rectangle(*box.astype(np.int), img, color, thickness, label=str(track_id))
 
-def write_video_with_object_i(orig_video_path, object_i, tracking_of_object_i, fourcc_string='MJPG', fps=24):
+def write_video_with_object_i(orig_video_path, object_i, tracking_of_object_i, fourcc_string='mp4v'):
+
+    def extract(x, y, w, h, img):
+        
+        black_img = np.zeros(img.shape, np.uint8)
+        x1, y1 = int(x), int(y)
+        x2, y2 = int(x + w), int(y + h)
+        black_img[y1:y2, x1:x2, :] = 1
+        print(abs(y2-y1), abs(x2-x1))
+
+        # return np.transpose(np.multiply(black_img, img), (1, 0, 2))
+        return np.multiply(black_img, img)
+
     vcap = cv2.VideoCapture(orig_video_path)
+    fps = vcap.get(cv2.CAP_PROP_FPS)
     img_size = (int(vcap.get(HEIGHT)), int(vcap.get(WIDTH)))
+    
     fourcc = cv2.VideoWriter_fourcc(*fourcc_string) # Be sure to use lower case
 
-    vwriter = cv2.VideoWriter('Tracking_Results/{}/{}.avi'.format(object_i, object_i), 
+    objects_path = 'Tracking_Videos'
+    if not os.path.exists(objects_path):
+        os.makedirs(objects_path)
+
+    vwriter = cv2.VideoWriter('Tracking_Videos/{}.mp4'.format(object_i), 
         fourcc, fps,  img_size)
     frame_idx = 0
     frames_of_object_i = tracking_of_object_i[:, 0]
+
     while True:
         ret, img = vcap.read()
         if not ret:
@@ -118,18 +140,35 @@ def write_video_with_object_i(orig_video_path, object_i, tracking_of_object_i, f
             break
 
 
+        output_frame = np.zeros((int(vcap.get(HEIGHT)), int(vcap.get(WIDTH)), 3))
+        
         if frame_idx in frames_of_object_i:
             frame_mask = tracking_of_object_i[:, 0].astype(np.int) == frame_idx
             box = tracking_of_object_i[frame_mask, 2:6][0]
             # print(box)
-            draw_groundtruth(object_i, box, img)
+
+            output_frame = extract(*box, img)
+            
+            # cv2.imwrite('Tracking_Videos/{}.jpg'.format(c), output_frame)
+            # vwriter.write(output_frame)
+            # g = cv2.resize(output_frame, img_size)
+            # print(type(g))
+            vwriter.write(output_frame)    
+            # draw_groundtruth(object_i, box, img)
+            
 
         # write image to the video
-        vwriter.write(cv2.resize(img.copy(), img_size))
+        # vwriter.write(cv2.resize(img.copy(), img_size))
+        # vwriter.write(cv2.resize(output_frame, img_size))
         frame_idx += 1
 
 
 def save_video_results(orig_video_path):
+    # delete videos folder if exists
+    if os.path.exists('Tracking_Videos'):
+        shutil.rmtree('Tracking_Videos', ignore_errors=True, onerror=None)
+
+
     results = np.loadtxt('Tracking_Results/tr.csv', delimiter=',')
     # select all objects unique
     ids = np.unique(results[:, 1].astype(int))
