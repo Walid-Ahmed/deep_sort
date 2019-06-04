@@ -142,8 +142,11 @@ def run(frozen_model_path, model, vcap, f_rate, threshold, output_file, min_conf
                 os.makedirs(objects_path.format(track.track_id))
             
             global num_objects
+            # cv2.imwrite(os.path.join(objects_path.format(track.track_id), 
+            #     '{}_{}_{}.jpg'.format(frame_idx, track.track_id, num_objects)), 
+            #     image[int(miny): int(maxy), int(minx): int(maxx), :])
             cv2.imwrite(os.path.join(objects_path.format(track.track_id), 
-                '{}_{}_{}.jpg'.format(frame_idx, track.track_id, num_objects)), 
+                '{}.jpg'.format(str(frame_idx).zfill(10))), 
                 image[int(miny): int(maxy), int(minx): int(maxx), :])
             num_objects += 1
 
