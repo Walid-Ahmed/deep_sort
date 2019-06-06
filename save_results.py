@@ -143,7 +143,12 @@ def write_video_with_object_i(orig_video_path, object_i, tracking_of_object_i, a
 
             output_frame, ret = extract(*box, img)
             if ret:
-                vwriter.write(cv2.resize(output_frame, img_size, interpolation = cv2.INTER_LINEAR))    
+                #print(img_size)
+                h,w,c=output_frame.shape
+                if (not (h>0)) or (not (w>0)):
+                    continue
+                #print(h,w,c)
+                vwriter.write(cv2.resize(output_frame, img_size, interpolation = cv2.INTER_LINEAR))
             
         frame_idx += 1
 
