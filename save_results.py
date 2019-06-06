@@ -107,10 +107,10 @@ def draw_groundtruth(track_id, box, img):
 def write_video_with_object_i(orig_video_path, object_i, tracking_of_object_i, avg_w, avg_h, fourcc_string='mp4v'):
 
     def extract(x, y, w, h, img):
-        
-        black_img = np.zeros(img.shape, np.uint8)
         x1, y1 = int(x), int(y)
         x2, y2 = int(x + w), int(y + h)
+        if (x2 < x1 or y2 < y1):
+            return None
         return img[y1:y2, x1:x2, :]
         
 
@@ -135,32 +135,24 @@ def write_video_with_object_i(orig_video_path, object_i, tracking_of_object_i, a
             vcap.release()
             vwriter.release()
             break
-
-
-        
-        
+                
         if frame_idx in frames_of_object_i:
             frame_mask = tracking_of_object_i[:, 0].astype(np.int) == frame_idx
             box = tracking_of_object_i[frame_mask, 2:6][0]
-            # print(box)
+            
 
             output_frame = extract(*box, img)
+            if output_frame:
+                vwriter.write(cv2.resize(output_frame, img_size, interpolation = cv2.INTER_LINEAR))    
             
-            # cv2.imwrite('Tracking_Videos/{}.jpg'.format(c), output_frame)
-            # vwriter.write(output_frame)
-            # g = cv2.resize(output_frame, img_size)
-            # print(type(g))
-            vwriter.write(cv2.resize(output_frame, img_size, interpolation = cv2.INTER_LINEAR))    
-            # draw_groundtruth(object_i, box, img)
-            
-
-        # write image to the video
-        # vwriter.write(cv2.resize(img.copy(), img_size))
-        # vwriter.write(cv2.resize(output_frame, img_size))
         frame_idx += 1
 
 
 def save_video_results(orig_video_path):
+    if not os.path.isfile('Tracking_Results/tr.csv'):
+        print('There are no tracked objects. Execut run.py first.')
+        return 
+
     # delete videos folder if exists
     if os.path.exists('Tracking_Videos'):
         shutil.rmtree('Tracking_Videos', ignore_errors=True, onerror=None)
@@ -177,6 +169,28 @@ def save_video_results(orig_video_path):
         avg_w, avg_h = (int(np.average(tracking_of_object_i[:, 4])), int(np.average(tracking_of_object_i[:, 5])))
         
         write_video_with_object_i(orig_video_path, i, tracking_of_object_i, avg_w, avg_h)
+
+def parse_args():
+    """ Parse command line arguments.
+    """
+    parser = argparse.ArgumentParser(description="Saving Results")
+    
+    parser.add_argument(
+        "--source_video", help="Enter source video file name",
+        default='sample.mp4', type=str)
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+    args = parse_args()
+    save_video_results(args.source_video)
+
+    
+
+    
+
+
+
 
     
 

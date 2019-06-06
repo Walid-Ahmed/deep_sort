@@ -62,6 +62,10 @@ Common entries of ```app.config``` are:
   - More info about the supported entries in ```app.config``` is found using ```python deep_sort_app_online.py -h```.
 
 
+## Additional Features
+
+The ```run.py``` primarily showcase the deep SORT in conjunction with a detection network (SSD by default) which can be changed from ```app.config``` file. The ```Tracking_Results``` folder contains all the images for each tracked object. Moreover, an additional script ```s_run.py``` groups these image as an independent video for each detected object as well and to carefully examine the output results.
+
 
 ## More details
 
