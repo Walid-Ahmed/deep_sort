@@ -19,7 +19,8 @@ online_sort_command = "python deep_sort_app_online.py \
     --threshold={}\
     --min_confidence={} \
     --nn_budget={} \
-    --record_video={}".format(config['d_model'], config["f_model"], config["input_video"], int(config['frame_rate']), float(config["detection_threshold"]), config["min_confidence"], config["nn_budget"], config["record_video"])
+    --display={}\
+    --record_video={}".format(config['d_model'], config["f_model"], config["input_video"], int(config['frame_rate']), float(config["detection_threshold"]), config["min_confidence"], config["nn_budget"], config['display'], config["record_video"])
 os.system(online_sort_command)
 
 os.system("echo '\nsaving video results'")

@@ -109,9 +109,9 @@ def write_video_with_object_i(orig_video_path, object_i, tracking_of_object_i, a
     def extract(x, y, w, h, img):
         x1, y1 = int(x), int(y)
         x2, y2 = int(x + w), int(y + h)
-        if (x2 < x1 or y2 < y1):
-            return None
-        return img[y1:y2, x1:x2, :]
+        if (x2 <= x1 or y2 <= y1):
+            return None, False
+        return img[y1:y2, x1:x2, :], True
         
 
     vcap = cv2.VideoCapture(orig_video_path)
@@ -141,8 +141,8 @@ def write_video_with_object_i(orig_video_path, object_i, tracking_of_object_i, a
             box = tracking_of_object_i[frame_mask, 2:6][0]
             
 
-            output_frame = extract(*box, img)
-            if output_frame:
+            output_frame, ret = extract(*box, img)
+            if ret:
                 vwriter.write(cv2.resize(output_frame, img_size, interpolation = cv2.INTER_LINEAR))    
             
         frame_idx += 1

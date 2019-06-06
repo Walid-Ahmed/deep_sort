@@ -8,6 +8,7 @@ import shutil
 import cv2
 import numpy as np
 
+
 from application_util import preprocessing
 from application_util import visualization
 from deep_sort import nn_matching
@@ -15,11 +16,13 @@ from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 from tools.generate_detections import * 
 from save_results import *
+from collections import defaultdict
 
 HEIGHT = 3
 WIDTH = 4
 FRAMES_NUM = 7
 num_objects = 0
+objects_count = defaultdict(int) # default value of int is 0
 
 def get_frame(vcap, frame_num):
     vcap.set(1, frame_num)
@@ -145,8 +148,9 @@ def run(frozen_model_path, model, vcap, f_rate, threshold, output_file, min_conf
             # cv2.imwrite(os.path.join(objects_path.format(track.track_id), 
             #     '{}_{}_{}.jpg'.format(frame_idx, track.track_id, num_objects)), 
             #     image[int(miny): int(maxy), int(minx): int(maxx), :])
+            objects_count[track.track_id] += 1
             cv2.imwrite(os.path.join(objects_path.format(track.track_id), 
-                '{}.jpg'.format(str(frame_idx).zfill(10))), 
+                '{}.jpg'.format(str(objects_count[track.track_id]).zfill(10))), 
                 image[int(miny): int(maxy), int(minx): int(maxx), :])
             num_objects += 1
 
@@ -260,13 +264,14 @@ def parse_args():
         "--nn_budget", help="Maximum size of the appearance descriptors "
         "gallery. If None, no budget is enforced.", type=int, default=None)
     parser.add_argument(
-        "--display", help="Show intermediate tracking results",
-        default=True, type=bool)
+        "--display", help="Show intermediate tracking results")
     parser.add_argument(
         "--record_video", help="Enter record file name",
         default='x.mp4', type=str)
     return parser.parse_args()
 
+def isdisplay(display):
+    return 'true' == display.lower()
 
 if __name__ == "__main__":
     args = parse_args()
@@ -281,7 +286,7 @@ if __name__ == "__main__":
 
     run(args.frozen, encoder, vcap, int(f_rate), args.threshold, args.output_file,
         args.min_confidence, args.nms_max_overlap, args.min_detection_height,
-        args.max_cosine_distance, args.nn_budget, args.display, args.record_video)
+        args.max_cosine_distance, args.nn_budget, isdisplay(args.display), args.record_video)
 
     
 
